@@ -7,6 +7,8 @@ function terminate(req, res, proxy) {
   proxy.proxyRequest(req, res, { host:'127.0.0.1', port:8999 });
 }
 
+var port = process.env.PORT || 8000;
+
 httpProxy.createServer(function (req, res, proxy) {
   // Put your custom server logic here
   var parts = req.url.split('?');
@@ -28,7 +30,11 @@ httpProxy.createServer(function (req, res, proxy) {
 
   // if proxying to an ip with a host, we need to rewrite host url to this proxy e.g. for embedded resources
   if (params.ip && params.host) {
-    var proxyHostURL = "127.0.0.1:8000";
+    if (process.env.NODE_ENV == 'test') {
+      var proxyHostURL = "127.0.0.1:" + port;
+    } else {
+      var proxyHostURL = "proxed.herokuapp.com";
+    }
     var proxyQuery = "ip=" + encodeURIComponent(params.ip) +
                      "&host=" + encodeURIComponent(params.host) + 
                      "&port=" + encodeURIComponent(params.port);
@@ -91,7 +97,8 @@ httpProxy.createServer(function (req, res, proxy) {
  //   buffer: buffer
   });
 
-}).listen(8000);
+}).listen(port);
+    console.log("proxy listening on port %d", port);
 
 http.createServer(function (req, res) {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -99,24 +106,27 @@ http.createServer(function (req, res) {
   res.end();
 }).listen(8999);
 
-http.createServer(function (req, res) {
-  var uri = URL.parse(req.url);
-//  console.log(uri);
-  if (uri.pathname == '/') {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.write('<html><head><title>hello</title><link type="text/css" rel="stylesheet" href="http://127.0.0.1:9000/foo.css?cc=1"/></head><body>hello</body></html>');
-  }
-  else {
-    res.writeHead(200, { 'Content-Type': 'text/css' });
-    res.write('body { background:#afa; }');
-  }
+if (process.env.NODE_ENV == 'test') {
+
+  http.createServer(function (req, res) {
+    var uri = URL.parse(req.url);
+  //  console.log(uri);
+    if (uri.pathname == '/') {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.write('<html><head><title>hello</title><link type="text/css" rel="stylesheet" href="http://127.0.0.1:9000/foo.css?cc=1"/></head><body>hello</body></html>');
+    }
+    else {
+      res.writeHead(200, { 'Content-Type': 'text/css' });
+      res.write('body { background:#afa; }');
+    }
+      res.end();
+  }).listen(9000);
+
+  http.createServer(function (req, res) {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.write('proxied to server 2!' + '\n' + JSON.stringify(req.headers, true, 2));
     res.end();
-}).listen(9000);
+  }).listen(9001);
 
-http.createServer(function (req, res) {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.write('proxied to server 2!' + '\n' + JSON.stringify(req.headers, true, 2));
-  res.end();
-}).listen(9001);
-
-process.on("SIGINT", process.exit.bind(process));
+  process.on("SIGINT", process.exit.bind(process));
+}
