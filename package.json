@@ -1,0 +1,8 @@
+{
+    "name": "proxyto"
+  , "version": "0.0.1"
+  , "dependencies": {
+      "express": "*"
+    , "http-proxy": "*"
+  }
+}
