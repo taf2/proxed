@@ -4,7 +4,10 @@ var http = require('http')
   , httpProxy = require('http-proxy');
 
 function terminate(req, res, proxy) {
-  proxy.proxyRequest(req, res, { host:'127.0.0.1', port:8999 });
+  //proxy.proxyRequest(req, res, { host:'127.0.0.1', port:8999 });
+  res.writeHead(404);
+  res.write('not found');
+  res.end();
 }
 
 var port = process.env.PORT || 8000;
@@ -99,12 +102,13 @@ httpProxy.createServer(function (req, res, proxy) {
 
 }).listen(port);
     console.log("proxy listening on port %d", port);
-
+/*
 http.createServer(function (req, res) {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.write('Unkown endpoint' + '\n' + JSON.stringify(req.headers, true, 2));
   res.end();
 }).listen(8999);
+*/
 
 if (process.env.NODE_ENV == 'test') {
 
