@@ -17,14 +17,17 @@ function userInput(req, res, proxy, error) {
   res.writeHead(200, {'Content-Type': 'text/html'});
   res.write(
   "<doctype html>" +
-  "<html><head><title>Proxy Your Site</title></head><body>" +
+  "<html><head><title>Proxy Your Site</title></head><body style='margin:20px auto;width:650px'>" +
   "<form>" + (error ? "<strong style='color:red'>Must enter all 3 values for this to work</strong>" : '') + 
-    "<p>Type in the following to proxy using IP, Host Header, and Port.</p>" + 
+    "<h1>Easy Proxy Browser</h1>" +
+    "<p>Ever need to set up a server with a specific hostname before you have the DNS?  Want to build and preview your site with the relase ready domain name before go live?  Enter in your servers IP, the hostname and port number to get started.</p>" + 
     "IP: <input type='text' name='ip'/>" +
-    "Host: <input type='text' name='host'/>" +
+    "Host Header: <input type='text' name='host'/>" +
     "Port: <input type='text' name='port'/>" +
     "<input type='submit' value='Go'/>" + 
   "</form>" +
+  "<script type=\"text/javascript\" src=\"https://apis.google.com/js/plusone.js\"></script><g:plusone></g:plusone>" +
+  "<a href=\"http://twitter.com/share\" class=\"twitter-share-button\" data-count=\"horizontal\">Tweet</a><script type=\"text/javascript\" src=\"http://platform.twitter.com/widgets.js\"></script>" +
   "</body></html>"
   );
   res.end();
