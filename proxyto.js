@@ -10,6 +10,26 @@ function terminate(req, res, proxy) {
   res.end();
 }
 
+function errorInput(req, res, proxy) {
+  userInput(req, res, proxy, true);
+}
+function userInput(req, res, proxy, error) {
+  res.writeHead(200, {'Content-Type': 'text/html'});
+  res.write(
+  "<doctype html>" +
+  "<html><head><title>Proxy Your Site</title></head><body>" +
+  "<form>" + (error ? "<strong style='color:red'>Must enter all 3 values for this to work</strong>" : '') + 
+    "<p>Type in the following to proxy using IP, Host Header, and Port.</p>" + 
+    "IP: <input type='text' name='ip'/>" +
+    "Host: <input type='text' name='host'/>" +
+    "Port: <input type='text' name='port'/>" +
+    "<input type='submit' value='Go'/>" + 
+  "</form>" +
+  "</body></html>"
+  );
+  res.end();
+}
+
 var port = process.env.PORT || 8000;
 
 httpProxy.createServer(function (req, res, proxy) {
@@ -25,6 +45,23 @@ httpProxy.createServer(function (req, res, proxy) {
     terminate(req, res, proxy); return;
   }*/
   var uri = URL.parse(req.url);
+  console.log(uri);
+  if (uri.pathname == '/') {
+    if (uri.query) {
+      var params = querystring.parse(uri.query);
+      if (!params.host || !params.port || !params.ip) {
+        errorInput(req, res, proxy);
+      }
+      else {
+        res.writeHead("301", {"Location": "/" + params.ip + "/" + params.host + "/" + params.port});
+        res.end();
+      }
+    }
+    else {
+      userInput(req, res, proxy, false);
+    }
+    return;
+  }
   console.log(uri);
   var parts = uri.pathname.split('/');
   while (parts[0] == '' && parts.length > 0) { parts.shift(); }
