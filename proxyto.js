@@ -14,7 +14,7 @@ var port = process.env.PORT || 8000;
 
 httpProxy.createServer(function (req, res, proxy) {
   // Put your custom server logic here
-  var parts = req.url.split('?');
+  /*var parts = req.url.split('?');
   console.log(req.url);
   if (parts.length == 1) { terminate(req, res, proxy); return; }
   console.log(parts);
@@ -23,8 +23,28 @@ httpProxy.createServer(function (req, res, proxy) {
 
   if (!params.host || !params.port) {
     terminate(req, res, proxy); return;
+  }*/
+  var uri = URL.parse(req.url);
+  console.log(uri);
+  var parts = uri.pathname.split('/');
+  while (parts[0] == '' && parts.length > 0) { parts.shift(); }
+  console.log(parts);
+  if (parts.length < 3) {
+    terminate(req, res, proxy); return;
   }
+  var params = {};
+  params.ip = parts.shift();
+  params.host = parts.shift();
+  params.port = parseInt(parts.shift());
+  if (!params.ip || !params.host || !params.port) {
+    terminate(req, res, proxy); return;
+  }
+  uri.pathname = parts.join('/');
 
+  req.url = URL.format(uri);
+  if (!req.url.match(/^\//)) {
+    req.url = '/' + req.url;
+  }
   req.headers['host'] = params.host;
 
   req.on('end', function() {
@@ -38,9 +58,10 @@ httpProxy.createServer(function (req, res, proxy) {
     } else {
       var proxyHostURL = "proxed.herokuapp.com";
     }
-    var proxyQuery = "ip=" + encodeURIComponent(params.ip) +
-                     "&host=" + encodeURIComponent(params.host) + 
-                     "&port=" + encodeURIComponent(params.port);
+    var proxyPathInfo = params.ip + '/' + encodeURIComponent(params.host) + '/' + params.port;
+//    var proxyQuery = "ip=" + encodeURIComponent(params.ip) +
+//                     "&host=" + encodeURIComponent(params.host) + 
+//                     "&port=" + encodeURIComponent(params.port);
     var destHost = params.host;
     if (params.port != 80) {
       destHost += ":" + params.port;
@@ -76,17 +97,19 @@ httpProxy.createServer(function (req, res, proxy) {
           delete buffer;
           // "<link href='http://example.com/foo.css?cc=1'/>"
           // s.replace(/example.com(.*)(["'])/g,'hello$1?foo=bar$2').replace(/(hello.*\?.*?)\?foo=bar/g,'$1&foo=bar')
-          var regex = new RegExp(destHost + "(.*)([\"'])",'g');
-          var restr = proxyHostURL + '$1?' + proxyQuery + '$2';
-          var regex2 = new RegExp("(" + proxyHostURL + ".*\\?.*?)\\?" + proxyQuery, 'g');
-          var restr2 = '$1&' + proxyQuery;
+          //var regex = new RegExp(destHost + "(.*?)([\"'\)])",'g');
+          //var restr = proxyHostURL + '$1?' + proxyQuery + '$2';
+          //var regex2 = new RegExp("(" + proxyHostURL + ".*\\?.*?)\\?" + proxyQuery, 'g');
+          //var restr2 = '$1&' + proxyQuery;
+          var regex = new RegExp(destHost,'g');
           //console.log(regex);
           //console.log(regex2);
           //console.log(restr2);
           // replace first, then handle ?
           //console.log(finalBuffer.toString('utf8').replace(regex, restr));
           //console.log(finalBuffer.toString('utf8').replace(regex, restr).replace(regex2, restr2));
-          write(finalBuffer.toString('utf8').replace(regex, restr).replace(regex2, restr2) );
+          //write(finalBuffer.toString('utf8').replace(regex, restr).replace(regex2, restr2) );
+          write(finalBuffer.toString('utf8').replace(regex, proxyHostURL + '/' + proxyPathInfo));
           console.log("end");
           end();
         }
@@ -111,6 +134,7 @@ http.createServer(function (req, res) {
 */
 
 if (process.env.NODE_ENV == 'test') {
+  console.log("test mode: 9000, 9001");
 
   http.createServer(function (req, res) {
     var uri = URL.parse(req.url);
