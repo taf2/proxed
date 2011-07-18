@@ -26,6 +26,7 @@ function userInput(req, res, proxy, error) {
     "Port: <input type='text' name='port'/>" +
     "<input type='submit' value='Go'/>" + 
   "</form>" +
+  "<a href='https://github.com/taf2/proxed'>source</a>" +
   "<script type=\"text/javascript\" src=\"https://apis.google.com/js/plusone.js\"></script><g:plusone></g:plusone>" +
   "<a href=\"http://twitter.com/share\" class=\"twitter-share-button\" data-count=\"horizontal\">Tweet</a><script type=\"text/javascript\" src=\"http://platform.twitter.com/widgets.js\"></script>" +
   "</body></html>"
