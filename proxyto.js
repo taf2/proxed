@@ -37,19 +37,9 @@ function userInput(req, res, proxy, error) {
 var port = process.env.PORT || 8000;
 
 httpProxy.createServer(function (req, res, proxy) {
-  // Put your custom server logic here
-  /*var parts = req.url.split('?');
-  console.log(req.url);
-  if (parts.length == 1) { terminate(req, res, proxy); return; }
-  console.log(parts);
-  var params = querystring.parse(parts[1]);
-  console.log(params);
-
-  if (!params.host || !params.port) {
-    terminate(req, res, proxy); return;
-  }*/
   var uri = URL.parse(req.url);
   console.log(uri);
+  // handle user interface
   if (uri.pathname == '/') {
     if (uri.query) {
       var params = querystring.parse(uri.query);
@@ -66,7 +56,7 @@ httpProxy.createServer(function (req, res, proxy) {
     }
     return;
   }
-  console.log(uri);
+  // start the proxy
   var parts = uri.pathname.split('/');
   while (parts[0] == '' && parts.length > 0) { parts.shift(); }
   console.log(parts);
@@ -74,7 +64,7 @@ httpProxy.createServer(function (req, res, proxy) {
     terminate(req, res, proxy); return;
   }
   var params = {};
-  params.ip = parts.shift();
+  params.ip   = parts.shift();
   params.host = parts.shift();
   params.port = parseInt(parts.shift());
   if (!params.ip || !params.host || !params.port) {
@@ -100,15 +90,24 @@ httpProxy.createServer(function (req, res, proxy) {
       var proxyHostURL = "proxed.herokuapp.com";
     }
     var proxyPathInfo = params.ip + '/' + encodeURIComponent(params.host) + '/' + params.port;
-//    var proxyQuery = "ip=" + encodeURIComponent(params.ip) +
-//                     "&host=" + encodeURIComponent(params.host) + 
-//                     "&port=" + encodeURIComponent(params.port);
     var destHost = params.host;
+    var regex = new RegExp(destHost,'g');
     if (params.port != 80) {
       destHost += ":" + params.port;
     }
     var writeHead = res.writeHead.bind(res);
     res.writeHead = function(status, headers) {
+      if (status > 300 && status < 400 && headers['location']) {
+        // handle a redirect, to stay inside the proxy
+        if (headers['location'].match(regex)) {
+          headers['location'] = headers['location'].replace(regex, proxyHostURL + '/' + proxyPathInfo);
+        }
+        else if (headers['location'].match(/^\//)) {
+          headers['location'] = headers['location'].replace(/^\//, '/' + proxyPathInfo);
+        }
+        writeHead(status, headers);
+        return;
+      }
       writeHead(status, headers);
       //console.log("status: %d: %s", status, JSON.stringify(headers));
       var ctype = headers['content-type'];
@@ -136,20 +135,7 @@ httpProxy.createServer(function (req, res, proxy) {
           var finalBuffer = new Buffer(bufferSize);
           buffer.copy(finalBuffer, 0, 0);
           delete buffer;
-          // "<link href='http://example.com/foo.css?cc=1'/>"
-          // s.replace(/example.com(.*)(["'])/g,'hello$1?foo=bar$2').replace(/(hello.*\?.*?)\?foo=bar/g,'$1&foo=bar')
-          //var regex = new RegExp(destHost + "(.*?)([\"'\)])",'g');
-          //var restr = proxyHostURL + '$1?' + proxyQuery + '$2';
-          //var regex2 = new RegExp("(" + proxyHostURL + ".*\\?.*?)\\?" + proxyQuery, 'g');
-          //var restr2 = '$1&' + proxyQuery;
-          var regex = new RegExp(destHost,'g');
-          //console.log(regex);
-          //console.log(regex2);
-          //console.log(restr2);
-          // replace first, then handle ?
-          //console.log(finalBuffer.toString('utf8').replace(regex, restr));
-          //console.log(finalBuffer.toString('utf8').replace(regex, restr).replace(regex2, restr2));
-          //write(finalBuffer.toString('utf8').replace(regex, restr).replace(regex2, restr2) );
+          // process buffered content with regex
           write(finalBuffer.toString('utf8').replace(regex, proxyHostURL + '/' + proxyPathInfo));
           console.log("end");
           end();
@@ -160,19 +146,12 @@ httpProxy.createServer(function (req, res, proxy) {
 
   proxy.proxyRequest(req, res, {
     host: (params.ip || params.host),
-    port: params.port//,
- //   buffer: buffer
+    port: params.port
   });
 
 }).listen(port);
-    console.log("proxy listening on port %d", port);
-/*
-http.createServer(function (req, res) {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.write('Unkown endpoint' + '\n' + JSON.stringify(req.headers, true, 2));
-  res.end();
-}).listen(8999);
-*/
+
+console.log("proxy listening on port %d", port);
 
 if (process.env.NODE_ENV == 'test') {
   console.log("test mode: 9000, 9001");
@@ -192,8 +171,13 @@ if (process.env.NODE_ENV == 'test') {
   }).listen(9000);
 
   http.createServer(function (req, res) {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.write('proxied to server 2!' + '\n' + JSON.stringify(req.headers, true, 2));
+    var uri = URL.parse(req.url);
+    if (uri.pathname != '/') {
+      res.writeHead(302, { 'Content-Type': 'text/plain', 'Location': '/' });
+    }
+    else {
+      res.write('proxied to server 2!' + '\n' + JSON.stringify(req.headers, true, 2));
+    }
     res.end();
   }).listen(9001);
 
