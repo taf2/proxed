@@ -36,6 +36,19 @@ function userInput(req, res, proxy, error) {
 
 var port = process.env.PORT || 8000;
 
+// css may have absolute path entries... we need to track them down... e.g.
+// background:
+// behavior:
+function cssFilter(proxyURI, text) {
+  // background
+  // background replace(/(url\s*\(\s*["']?\s*)(\/.*)?\s*(["']?\s*\).*)/,"$1" + 'http://ourdomain.com' + "$2$3")
+  return text.replace(/(url\s*\(\s*["']?\s*)(\/.*)?\s*(["']?\s*\).*)/g,"$1" + proxyURI + "$2$3")
+}
+// TODO: JavaScript may have absolute path entries... e.g.
+// src = ...
+function jsFilter(proxyURI, text) {
+}
+
 httpProxy.createServer(function (req, res, proxy) {
   var uri = URL.parse(req.url);
   console.log(uri);
@@ -59,7 +72,7 @@ httpProxy.createServer(function (req, res, proxy) {
   // start the proxy
   var parts = uri.pathname.split('/');
   while (parts[0] == '' && parts.length > 0) { parts.shift(); }
-  console.log(parts);
+
   if (parts.length < 3) {
     terminate(req, res, proxy); return;
   }
@@ -136,7 +149,14 @@ httpProxy.createServer(function (req, res, proxy) {
           buffer.copy(finalBuffer, 0, 0);
           delete buffer;
           // process buffered content with regex
-          write(finalBuffer.toString('utf8').replace(regex, proxyHostURL + '/' + proxyPathInfo));
+          console.log(ctype);
+          if (ctype.match(/text\/css/)) {
+            console.log("process css");
+            write(cssFilter('http://' + proxyHostURL + '/' + proxyPathInfo, finalBuffer.toString('utf8')));
+          }
+          else {
+            write(finalBuffer.toString('utf8').replace(regex, proxyHostURL + '/' + proxyPathInfo));
+          }
           console.log("end");
           end();
         }
