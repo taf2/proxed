@@ -51,7 +51,7 @@ function jsFilter(proxyURI, text) {
 
 httpProxy.createServer(function (req, res, proxy) {
   var uri = URL.parse(req.url);
-  console.log(uri);
+  //console.log(uri);
   // handle user interface
   if (uri.pathname == '/') {
     if (uri.query) {
@@ -91,9 +91,9 @@ httpProxy.createServer(function (req, res, proxy) {
   }
   req.headers['host'] = params.host;
 
-  req.on('end', function() {
-    console.log("sent request");
-  });
+//  req.on('end', function() {
+    //console.log("sent request");
+//  });
 
   // if proxying to an ip with a host, we need to rewrite host url to this proxy e.g. for embedded resources
   if (params.ip && params.host) {
